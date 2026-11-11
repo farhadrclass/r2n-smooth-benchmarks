@@ -1,17 +1,18 @@
-# R2N / R2NLS numerical experiments
+# R2N numerical experiments
 
-Scripts that reproduce the performance profiles of the paper on R2N and R2NLS, and quick
-versions of them for checking that everything works.
+Scripts that reproduce the performance profiles of the paper on R2N, and a quick version of
+them for checking that everything works.
 
 | Script | Problems | Output |
 |---|---|---|
 | [`R2N_quick_benchmark.jl`](R2N_quick_benchmark.jl) | unconstrained CUTEst problems with at most 100 variables | in `R2N_quick_results/`: same files as `R2N_paper_benchmark.jl` |
-| [`R2NLS_quick_benchmark.jl`](R2NLS_quick_benchmark.jl) | CUTEst feasibility problems with at most 100 variables, as least squares | in `R2NLS_quick_results/`: same files as `R2NLS_paper_benchmark.jl` |
 | [`R2N_paper_benchmark.jl`](R2N_paper_benchmark.jl) | unconstrained CUTEst problems | in `R2N_results/`: `R2N_stats.jld2`, `R2N_<solver>.md` / `.tex`, `R2N_<figure>_<cost>.pdf` |
-| [`R2NLS_paper_benchmark.jl`](R2NLS_paper_benchmark.jl) | CUTEst feasibility problems as least squares | in `R2NLS_results/`: `R2NLS_stats.jld2`, `R2NLS_<solver>.md` / `.tex`, `R2NLS_<figure>_<cost>.pdf` |
 
-Start with the quick benchmarks: they finish much faster than the paper benchmarks, which take
-many hours (see [Quick benchmarks](#quick-benchmarks)).
+Start with the quick benchmark: it finishes much faster than the paper benchmark, which takes
+many hours (see [Quick benchmark](#quick-benchmark)).
+
+An HSL licence is optional: without it, every solver runs except the two that use MA57
+(see [HSL (optional)](#hsl-optional)).
 
 Each script follows SolverBenchmark's
 [`bmark_cutest.jl`](https://github.com/JuliaSmoothOptimizers/SolverBenchmark.jl/blob/main/examples/bmark_cutest.jl)
@@ -25,6 +26,39 @@ example:
    `SolverBenchmark.pretty_latex_stats` (`.tex`);
 5. plot one performance profile per figure and cost with `SolverBenchmark.performance_profile`.
 
+## First-time setup
+
+These steps are needed once per machine; [Installation](#installation) explains each of them.
+
+1. **Julia.** Install Julia 1.11 or later from [julialang.org](https://julialang.org/downloads/).
+2. **gfortran** (Linux and macOS only, nothing to do on Windows). Install it and check that
+   `gfortran --version` works in the terminal you launch Julia from
+   (see [CUTEst.jl and gfortran](#cutestjl-and-gfortran)).
+3. **HSL (optional).** With an academic licence, download `HSL_jll.jl` from
+   [STFC](https://licences.stfc.ac.uk/product/libhsl) and unpack it. Without a licence, skip
+   this step (see [HSL (optional)](#hsl-optional)).
+4. **Packages.** Clone this repository, start Julia in its root folder and run, with internet
+   access:
+
+   ```julia
+   using Pkg
+   Pkg.activate(".")
+   Pkg.add(url = "https://github.com/Farhad-phd/JSOSolvers.jl", rev = "<TAG>")  # R2N is not in the registered JSOSolvers
+   Pkg.develop(path = "/path/to/HSL_jll.jl")  # only with the HSL licence of step 3
+   Pkg.instantiate()
+   ```
+
+5. **Without HSL**, set `use_hsl = false` at the top of `R2N_quick_benchmark.jl` and
+   `R2N_paper_benchmark.jl`.
+6. **Check** that everything works with the quick benchmark:
+
+   ```
+   julia --project=. R2N_quick_benchmark.jl
+   ```
+
+   The first run also downloads the CUTEst problem collection. The tables and figures are
+   written to `R2N_quick_results/`.
+
 ## Installation
 
 Julia 1.11 or later is required; the experiments in the paper were run with Julia 1.13.
@@ -32,14 +66,80 @@ Julia 1.11 or later is required; the experiments in the paper were run with Juli
 [`Project.toml`](Project.toml) lists the packages and their versions, and
 [`Manifest.toml`](Manifest.toml) records the exact versions used.
 
-**JSOSolvers.** R2N and R2NLS are not yet in a registered release of JSOSolvers.jl, so
-`Manifest.toml` takes JSOSolvers from the `<TAG>` tag of
-[Farhad-phd/JSOSolvers.jl](https://github.com/Farhad-phd/JSOSolvers.jl).
+### CUTEst.jl and gfortran
 
-**HSL.** [HSL.jl](https://github.com/JuliaSmoothOptimizers/HSL.jl) is a direct dependency of
-the experiments: it is listed in `Project.toml`, because JSOSolvers no longer installs it.
-The MA57 subsolver of R2N, `MA57R2NSubsolver`, is defined in a package extension of JSOSolvers
-that is activated by `using HSL`, so the R2N scripts load HSL next to JSOSolvers:
+[CUTEst.jl](https://github.com/JuliaSmoothOptimizers/CUTEst.jl) is installed with the other
+packages by `Pkg.instantiate()` (step 4 of the [first-time setup](#first-time-setup)).
+It brings the CUTEst and SIFDecode binaries with it (`CUTEst_jll` and `SIFDecode_jll`), so
+there is no need to build CUTEst yourself or to set `CUTEST`, `SIFDECODE` or `ARCHDEFS`.
+
+**Fortran compiler.** CUTEst.jl does need `gfortran`: each time a problem is loaded with
+`CUTEstModel`, its SIF file is decoded into Fortran files, which `gfortran` compiles into a
+shared library. Only `gfortran` is supported (not `ifx`, `ifort` or `flang`).
+
+| Platform | What to do |
+|---|---|
+| Windows | nothing: CUTEst.jl downloads its own `gfortran.exe` (MinGW-w64) the first time it compiles a problem |
+| Linux | install it with the package manager, for example `sudo apt install gfortran` (Debian, Ubuntu) or `sudo dnf install gcc-gfortran` (Fedora) |
+| macOS | `brew install gcc`, which provides `gfortran` |
+
+On Linux and macOS, `gfortran` must be on the `PATH` of the Julia process, otherwise
+`using CUTEst` fails with `gfortran is not installed`. Check with `gfortran --version` in the
+terminal you launch Julia from. CUTEst.jl warns if `gfortran` targets a different architecture
+than Julia (for example an x86_64 `gfortran` with an arm64 Julia on Apple silicon).
+
+**Problems.** The CUTEst problem collection (the SIF files) is not part of the package: it is
+downloaded automatically, as a Julia artifact, the first time `using CUTEst` runs, so that first
+run needs internet access. If the environment variable `MASTSIF` is set, CUTEst.jl reads the SIF
+files from that directory instead; unset it, or call `CUTEst.set_mastsif()` after `using CUTEst`,
+so that every problem selected by the scripts is found.
+
+Decoding and compiling a problem happens before it is solved, so it is not counted in the solve
+times.
+
+To check the installation, load one problem from the root of this repository
+(`julia --project=.`):
+
+```julia
+using CUTEst
+nlp = CUTEstModel("ROSENBR")  # decodes and compiles the problem with gfortran
+println(nlp.meta.nvar)        # 2
+finalize(nlp)
+```
+
+### JSOSolvers
+
+R2N is not yet in a registered release of JSOSolvers.jl, so step 4 of the
+[first-time setup](#first-time-setup) installs JSOSolvers from the `<TAG>` tag of
+[Farhad-phd/JSOSolvers.jl](https://github.com/Farhad-phd/JSOSolvers.jl). Without that
+`Pkg.add`, `Pkg.instantiate()` installs the registered JSOSolvers, which has no `R2N`.
+
+### HSL (optional)
+
+An HSL licence is needed only for the two MA57 solvers. Every other solver (MINRES-QLP, CG,
+L-BFGS and `trunk`) runs without it.
+
+**With a licence.** MA57 needs a licensed `HSL_jll.jl`, available free of charge for academic
+use from [STFC](https://licences.stfc.ac.uk/product/libhsl). Download and unpack it, add it to
+the environment with `Pkg.develop(path = "/path/to/HSL_jll.jl")` (step 4 of the
+[first-time setup](#first-time-setup)) and keep `use_hsl = true`.
+
+**Without a licence.** Skip `Pkg.develop`: `Pkg.instantiate()` then installs the public stub of
+`HSL_jll`, so `using HSL` still works but MA57 cannot run. Set `use_hsl = false` at the top of
+both scripts, which then leave out:
+
+| Script | Solvers not run | Figures not produced |
+|---|---|---|
+| `R2N_paper_benchmark.jl` | `R2N_ma57`, `R2N_ma57_fast` | `ma57`, `exact_vs_krylov` |
+| `R2N_quick_benchmark.jl` | `R2N_ma57_fast` | `exact_vs_krylov` |
+
+All the other solvers, tables and figures are the same as with the licence.
+
+**How the scripts load HSL.** [HSL.jl](https://github.com/JuliaSmoothOptimizers/HSL.jl) is a
+direct dependency of the experiments: it is listed in `Project.toml`, because JSOSolvers no
+longer installs it. The MA57 subsolver of R2N, `MA57R2NSubsolver`, is defined in a package
+extension of JSOSolvers that is activated by `using HSL`, so the scripts load HSL next to
+JSOSolvers, with or without a licence:
 
 ```julia
 using HSL  # activates MA57R2NSubsolver; loads with the public stub if there is no licence
@@ -47,21 +147,7 @@ using JSOSolvers
 ```
 
 `MA57R2NSubsolver` is not exported, so the scripts call it as `JSOSolvers.MA57R2NSubsolver(nlp)`.
-
-MA57 itself needs a licensed `HSL_jll.jl`, available free of charge for academic use from
-[STFC](https://licences.stfc.ac.uk/product/libhsl).
-Without it, HSL loads with the public stub of `HSL_jll` but MA57 cannot run: set
-`use_hsl = false` in the R2N scripts, so that the MA57 solvers are not run and the figures that
-use them (`ma57` and `exact_vs_krylov`) are not produced. R2NLS does not use HSL.
-
-From the root of this repository:
-
-```julia
-using Pkg
-Pkg.activate(".")
-Pkg.develop(path = "/path/to/HSL_jll.jl")  # only with the licensed copy downloaded from STFC
-Pkg.instantiate()
-```
+`HSL_jll` is precompiled, so it does not need `gfortran`.
 
 ### Code written for an earlier version of the JSOSolvers fork
 
@@ -71,63 +157,59 @@ the fork must load HSL as above and make these changes:
 | Old usage | Now |
 |---|---|
 | `HSLR2NSubsolver(nlp; hsl_constructor = ma57_coord)` | `JSOSolvers.MA57R2NSubsolver(nlp)` (not exported) |
-| `get_operator`, `get_operator_norm` | `JSOSolvers.get_model_hessian`, `JSOSolvers.get_model_hessian_norm` (R2N) or `JSOSolvers.get_jacobian_norm` (R2NLS) |
+| `get_operator`, `get_operator_norm` | `JSOSolvers.get_model_hessian`, `JSOSolvers.get_model_hessian_norm` |
 | `is_unsupported`, `finalize_subsolver!`, `reset_subsolver!`, `initialize!`, `update_subsolver!` | the same names with the `JSOSolvers.` prefix (no longer exported) |
 | `ls_min_alpha`, `ls_max_alpha` passed to `R2N` | remove them: they had no effect and were removed |
-| `scp_flag` passed to `R2NLS` | remove it: it had no effect (`R2N` still accepts `scp_flag`) |
 
 ## Running
 
-From the root of this repository, the quick benchmarks:
+From the root of this repository, the quick benchmark:
 
 ```
 julia --project=. R2N_quick_benchmark.jl
-julia --project=. R2NLS_quick_benchmark.jl
 ```
 
-and the paper benchmarks:
+and the paper benchmark:
 
 ```
 julia --project=. R2N_paper_benchmark.jl
-julia --project=. R2NLS_paper_benchmark.jl
 ```
 
-In the paper benchmarks each solve is limited to 600 seconds, so a full run takes many hours.
+In the paper benchmark each solve is limited to 600 seconds, so a full run takes many hours.
 The plots use the default Plots.jl style, so they may look slightly different on another machine.
 
-## Quick benchmarks
+## Quick benchmark
 
-The quick benchmarks run the same code as the paper benchmarks, with the same tolerances,
-solver options, costs and `to_skip` lists, on fewer problems and with a shorter time limit.
-They write the same kind of tables and figures, under the paper's figure names.
+`R2N_quick_benchmark.jl` runs the same code as the paper benchmark, with the same tolerances,
+solver options, costs and `to_skip` list, on fewer problems and with a shorter time limit.
+It writes the same kind of tables and figures, under the paper's figure names.
 
-| | `R2N_quick_benchmark.jl` | `R2NLS_quick_benchmark.jl` |
-|---|---|---|
-| Problems | those of the [R2N experiment](#r2n-experiment) with at most 100 variables | those of the [R2NLS experiment](#r2nls-experiment) with at most 100 variables |
-| `max_time` | 60 seconds | 60 seconds |
-| `output_dir` | `R2N_quick_results` | `R2NLS_quick_results` |
-| Solvers | `R2N_Minres_qlp_ag`, `R2N_Minres_qlp_ag_fast`, `R2N_cg_ag`, `R2N_cg_ag_fast`, `trunk_cg`, and `R2N_ma57_fast` when `use_hsl = true` | all three solvers of the paper |
-| Figures | `cg_vs_minresqlp`, `variants` (only `R2N_Minres_qlp_ag` and `_ag_fast`), `exact_vs_krylov` (when `use_hsl = true`), `cg_vs_trunk` | `matrix_free_vs_direct`, `lsmr_vs_trunk` |
+| | `R2N_quick_benchmark.jl` |
+|---|---|
+| Problems | those of the [R2N experiment](#r2n-experiment) with at most 100 variables |
+| `max_time` | 60 seconds |
+| `output_dir` | `R2N_quick_results` |
+| Solvers | `R2N_Minres_qlp_ag`, `R2N_Minres_qlp_ag_fast`, `R2N_cg_ag`, `R2N_cg_ag_fast`, `trunk_cg`, and `R2N_ma57_fast` when `use_hsl = true` |
+| Figures | `cg_vs_minresqlp`, `variants` (only `R2N_Minres_qlp_ag` and `_ag_fast`), `exact_vs_krylov` (when `use_hsl = true`), `cg_vs_trunk` |
 
-The quick runs use only the small problems, so their profiles are not identical to the
+The quick run uses only the small problems, so its profiles are not identical to the
 figures of the paper.
 
 ## Settings
 
-The top of each script holds the settings. Those of the paper benchmarks are set to the values
-used in the paper; the quick benchmarks differ only in `max_var`, `max_time` and `output_dir`.
+The top of each script holds the settings. Those of the paper benchmark are set to the values
+used in the paper; the quick benchmark differs only in `max_var`, `max_time` and `output_dir`.
 
-| Setting | Meaning | R2N | R2NLS |
-|---|---|---|---|
-| `min_var`, `max_var` | range of the number of variables | 1, `Inf` (quick: 1, 100) | 1, 5000 (quick: 1, 100) |
-| `to_skip` | problems left out | 7 problems | 7 problems |
-| `atol`, `rtol` | absolute and relative stopping tolerances | 1e-6, 1e-6 | 1e-8, 1e-6 |
-| `Fatol`, `Frtol` | stopping tolerances on the residual | — | `√eps`, `eps` |
-| `max_time` | time limit per solve, in seconds | 600 (quick: 60) | 600 (quick: 60) |
-| `use_hsl` | run the MA57 solvers (needs a licensed HSL_jll) | `true` | — |
-| `solved_statuses` | statuses counted as solved in the profiles | `first_order`, `acceptable` | `first_order`, `unbounded` |
-| `output_dir` | where the `.jld2` file, the tables and the figures are written (relative to where Julia is launched) | `R2N_results` (quick: `R2N_quick_results`) | `R2NLS_results` (quick: `R2NLS_quick_results`) |
-| `figure_format` | file format of the figures | `pdf` | `pdf` |
+| Setting | Meaning | Value |
+|---|---|---|
+| `min_var`, `max_var` | range of the number of variables | 1, `Inf` (quick: 1, 100) |
+| `to_skip` | problems left out | 7 problems |
+| `atol`, `rtol` | absolute and relative stopping tolerances | 1e-6, 1e-6 |
+| `max_time` | time limit per solve, in seconds | 600 (quick: 60) |
+| `use_hsl` | run the MA57 solvers (needs a licensed HSL_jll) | `true` (set `false` without an HSL licence) |
+| `solved_statuses` | statuses counted as solved in the profiles | `first_order`, `acceptable` |
+| `output_dir` | where the `.jld2` file, the tables and the figures are written (relative to where Julia is launched) | `R2N_results` (quick: `R2N_quick_results`) |
+| `figure_format` | file format of the figures | `pdf` |
 
 ## R2N experiment
 
@@ -173,39 +255,3 @@ otherwise its cost is `Inf`.
 
 L-BFGS runs evaluate no Hessian, so their `hess` profile carries no information.
 BenchmarkProfiles warns that it shifts the zero costs by one.
-
-## R2NLS experiment
-
-**Problems.** CUTEst problems with no objective, at least one constraint, only equality
-constraints, free variables and at most 5000 variables, without the 7 problems listed in
-`to_skip` in the script. Each problem is wrapped in `FeasibilityResidual`, which turns it into
-the least-squares problem of minimizing the norm of its constraint residual.
-
-**Stopping.** `atol = 1e-8`, `rtol = 1e-6`, `Fatol = √eps`, `Frtol = eps`, `max_time = 600` seconds.
-
-**Solvers.**
-
-| Name | Solver |
-|---|---|
-| `R2NLS_LSMR` | R2NLS with the matrix-free `LSMRSubsolver` |
-| `R2NLS_QRMumps` | R2NLS with the direct `QRMumpsSubsolver` |
-| `trunk_lsmr` | JSOSolvers' `trunk` for least squares (baseline) |
-
-The η and γ parameters of each R2NLS variant are given in the script.
-
-**Costs.** A problem counts as solved if the status is `first_order` or `unbounded`;
-otherwise its cost is `Inf`.
-
-| Cost | Measure |
-|---|---|
-| `time` | `elapsed_time` |
-| `iter` | `iter` |
-| `residual` | `neval_residual` |
-| `jacobian` | `neval_jac_residual + neval_jprod_residual / n + neval_jtprod_residual / m` |
-
-**Figures.**
-
-| Figure | Solvers compared |
-|---|---|
-| `matrix_free_vs_direct` | `R2NLS_LSMR`, `R2NLS_QRMumps` |
-| `lsmr_vs_trunk` | `R2NLS_LSMR`, `trunk_lsmr` |
