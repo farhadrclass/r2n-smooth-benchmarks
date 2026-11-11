@@ -43,7 +43,6 @@ These steps are needed once per machine; [Installation](#installation) explains 
    ```julia
    using Pkg
    Pkg.activate(".")
-   Pkg.add(url = "https://github.com/Farhad-phd/JSOSolvers.jl", rev = "<TAG>")  # R2N is not in the registered JSOSolvers
    Pkg.develop(path = "/path/to/HSL_jll.jl")  # only with the HSL licence of step 3
    Pkg.instantiate()
    ```
@@ -109,10 +108,9 @@ finalize(nlp)
 
 ### JSOSolvers
 
-R2N is not yet in a registered release of JSOSolvers.jl, so step 4 of the
-[first-time setup](#first-time-setup) installs JSOSolvers from the `<TAG>` tag of
-[Farhad-phd/JSOSolvers.jl](https://github.com/Farhad-phd/JSOSolvers.jl). Without that
-`Pkg.add`, `Pkg.instantiate()` installs the registered JSOSolvers, which has no `R2N`.
+R2N is part of [JSOSolvers.jl](https://github.com/JuliaSmoothOptimizers/JSOSolvers.jl) from
+version 0.14.9 on. `Project.toml` requires at least that version, so `Pkg.instantiate()`
+installs it from the General registry like the other packages.
 
 ### HSL (optional)
 
