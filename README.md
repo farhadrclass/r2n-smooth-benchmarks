@@ -36,7 +36,8 @@ These steps are needed once per machine; [Installation](#installation) explains 
    (see [CUTEst.jl and gfortran](#cutestjl-and-gfortran)).
 3. **HSL (optional).** With an academic licence, download `HSL_jll.jl` from
    [STFC](https://licences.stfc.ac.uk/product/libhsl) and unpack it. Without a licence, skip
-   this step (see [HSL (optional)](#hsl-optional)).
+   this step: the scripts detect it and leave out the MA57 solvers
+   (see [HSL (optional)](#hsl-optional)).
 4. **Packages.** Clone this repository, start Julia in its root folder and run, with internet
    access:
 
@@ -47,9 +48,7 @@ These steps are needed once per machine; [Installation](#installation) explains 
    Pkg.instantiate()
    ```
 
-5. **Without HSL**, set `use_hsl = false` at the top of `R2N_quick_benchmark.jl` and
-   `R2N_paper_benchmark.jl`.
-6. **Check** that everything works with the quick benchmark:
+5. **Check** that everything works with the quick benchmark:
 
    ```
    julia --project=. R2N_quick_benchmark.jl
@@ -117,21 +116,26 @@ installs it from the General registry like the other packages.
 An HSL licence is needed only for the two MA57 solvers. Every other solver (MINRES-QLP, CG,
 L-BFGS and `trunk`) runs without it.
 
+The scripts set `use_hsl = LIBHSL_isfunctional()`. This function of HSL.jl returns `true` only
+when the licensed `HSL_jll` is installed, so nothing needs to be changed in the scripts.
+
 **With a licence.** MA57 needs a licensed `HSL_jll.jl`, available free of charge for academic
-use from [STFC](https://licences.stfc.ac.uk/product/libhsl). Download and unpack it, add it to
-the environment with `Pkg.develop(path = "/path/to/HSL_jll.jl")` (step 4 of the
-[first-time setup](#first-time-setup)) and keep `use_hsl = true`.
+use from [STFC](https://licences.stfc.ac.uk/product/libhsl). Download and unpack it, then add it
+to the environment with `Pkg.develop(path = "/path/to/HSL_jll.jl")` (step 4 of the
+[first-time setup](#first-time-setup)). `LIBHSL_isfunctional()` then returns `true` and the
+scripts run the MA57 solvers.
 
 **Without a licence.** Skip `Pkg.develop`: `Pkg.instantiate()` then installs the public stub of
-`HSL_jll`, so `using HSL` still works but MA57 cannot run. Set `use_hsl = false` at the top of
-both scripts, which then leave out:
+`HSL_jll`, so `using HSL` still works but MA57 cannot run. `LIBHSL_isfunctional()` returns
+`false`, and the scripts leave out:
 
 | Script | Solvers not run | Figures not produced |
 |---|---|---|
 | `R2N_paper_benchmark.jl` | `R2N_ma57`, `R2N_ma57_fast` | `ma57`, `exact_vs_krylov` |
 | `R2N_quick_benchmark.jl` | `R2N_ma57_fast` | `exact_vs_krylov` |
 
-All the other solvers, tables and figures are the same as with the licence.
+All the other solvers, tables and figures are the same as with the licence. To leave out the
+MA57 solvers even with a licence, set `use_hsl = false` at the top of the script.
 
 **How the scripts load HSL.** [HSL.jl](https://github.com/JuliaSmoothOptimizers/HSL.jl) is a
 direct dependency of the experiments: it is listed in `Project.toml`, because JSOSolvers no
@@ -204,7 +208,7 @@ used in the paper; the quick benchmark differs only in `max_var`, `max_time` and
 | `to_skip` | problems left out | 7 problems |
 | `atol`, `rtol` | absolute and relative stopping tolerances | 1e-6, 1e-6 |
 | `max_time` | time limit per solve, in seconds | 600 (quick: 60) |
-| `use_hsl` | run the MA57 solvers (needs a licensed HSL_jll) | `true` (set `false` without an HSL licence) |
+| `use_hsl` | run the MA57 solvers | `LIBHSL_isfunctional()`: `true` with a licensed HSL_jll, `false` otherwise |
 | `solved_statuses` | statuses counted as solved in the profiles | `first_order`, `acceptable` |
 | `output_dir` | where the `.jld2` file, the tables and the figures are written (relative to where Julia is launched) | `R2N_results` (quick: `R2N_quick_results`) |
 | `figure_format` | file format of the figures | `pdf` |
