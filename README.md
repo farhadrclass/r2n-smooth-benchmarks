@@ -28,12 +28,11 @@ example:
 
 ## First-time setup
 
-These steps are needed once per machine; [Installation](#installation) explains each of them.
+These steps are needed once per machine.
 
 1. **Julia.** Install Julia 1.11 or later from [julialang.org](https://julialang.org/downloads/).
-2. **gfortran** (Linux and macOS only, nothing to do on Windows). Install it and check that
-   `gfortran --version` works in the terminal you launch Julia from
-   (see [CUTEst.jl and gfortran](#cutestjl-and-gfortran)).
+2. **gfortran.** CUTEst.jl needs it; follow the
+   [CUTEst.jl installation instructions](https://github.com/JuliaSmoothOptimizers/CUTEst.jl#installing).
 3. **HSL (optional).** With an academic licence, download `HSL_jll.jl` from
    [STFC](https://licences.stfc.ac.uk/product/libhsl) and unpack it. Without a licence, skip
    this step: the scripts detect it and leave out the MA57 solvers
@@ -48,124 +47,28 @@ These steps are needed once per machine; [Installation](#installation) explains 
    Pkg.instantiate()
    ```
 
-5. **Check** that everything works with the quick benchmark:
+5. **Check** that everything works by running the quick benchmark in the same Julia session:
 
-   ```
-   julia --project=. R2N_quick_benchmark.jl
+   ```julia
+   include("R2N_quick_benchmark.jl")
    ```
 
    The first run also downloads the CUTEst problem collection. The tables and figures are
-   written to `R2N_quick_results/`.
+   written to `R2N_quick_results/`; compare them with ours in
+   [`R2N_quick_reference/`](R2N_quick_reference/) (see [Reference results](#reference-results)).
 
-## Installation
+> [!WARNING]
+> Do not run `Pkg.update()`: the pins in `Project.toml` keep its packages fixed, but it would
+> still upgrade their dependencies.
 
-Julia 1.11 or later is required; the experiments in the paper were run with Julia 1.13.
+## HSL (optional)
 
-[`Project.toml`](Project.toml) pins each package to an exact version (`=` in `[compat]`), and
-[`Manifest.toml`](Manifest.toml) records the exact version of every package, including their
-dependencies. `Pkg.instantiate()` installs exactly these versions, so everyone runs the same
-code. Do not run `Pkg.update()`: the pins keep the packages of `Project.toml` fixed, but it
-would still upgrade their dependencies. `HSL_jll` is the only package that is not pinned, because
-with a licence it is replaced by the licensed `HSL_jll.jl` (see [HSL (optional)](#hsl-optional)).
-
-### CUTEst.jl and gfortran
-
-[CUTEst.jl](https://github.com/JuliaSmoothOptimizers/CUTEst.jl) is installed with the other
-packages by `Pkg.instantiate()` (step 4 of the [first-time setup](#first-time-setup)).
-It brings the CUTEst and SIFDecode binaries with it (`CUTEst_jll` and `SIFDecode_jll`), so
-there is no need to build CUTEst yourself or to set `CUTEST`, `SIFDECODE` or `ARCHDEFS`.
-
-**Fortran compiler.** CUTEst.jl does need `gfortran`: each time a problem is loaded with
-`CUTEstModel`, its SIF file is decoded into Fortran files, which `gfortran` compiles into a
-shared library. Only `gfortran` is supported (not `ifx`, `ifort` or `flang`).
-
-| Platform | What to do |
-|---|---|
-| Windows | nothing: CUTEst.jl downloads its own `gfortran.exe` (MinGW-w64) the first time it compiles a problem |
-| Linux | install it with the package manager, for example `sudo apt install gfortran` (Debian, Ubuntu) or `sudo dnf install gcc-gfortran` (Fedora) |
-| macOS | `brew install gcc`, which provides `gfortran` |
-
-On Linux and macOS, `gfortran` must be on the `PATH` of the Julia process, otherwise
-`using CUTEst` fails with `gfortran is not installed`. Check with `gfortran --version` in the
-terminal you launch Julia from. CUTEst.jl warns if `gfortran` targets a different architecture
-than Julia (for example an x86_64 `gfortran` with an arm64 Julia on Apple silicon).
-
-**Problems.** The CUTEst problem collection (the SIF files) is not part of the package: it is
-downloaded automatically, as a Julia artifact, the first time `using CUTEst` runs, so that first
-run needs internet access. If the environment variable `MASTSIF` is set, CUTEst.jl reads the SIF
-files from that directory instead; unset it, or call `CUTEst.set_mastsif()` after `using CUTEst`,
-so that every problem selected by the scripts is found.
-
-Decoding and compiling a problem happens before it is solved, so it is not counted in the solve
-times.
-
-To check the installation, load one problem from the root of this repository
-(`julia --project=.`):
-
-```julia
-using CUTEst
-nlp = CUTEstModel("ROSENBR")  # decodes and compiles the problem with gfortran
-println(nlp.meta.nvar)        # 2
-finalize(nlp)
-```
-
-### JSOSolvers
-
-R2N is part of [JSOSolvers.jl](https://github.com/JuliaSmoothOptimizers/JSOSolvers.jl) from
-version 0.14.9 on. `Project.toml` pins that version, so `Pkg.instantiate()` installs it from
-the General registry like the other packages.
-
-### HSL (optional)
-
-An HSL licence is needed only for the two MA57 solvers. Every other solver (MINRES-QLP, CG,
-L-BFGS and `trunk`) runs without it.
-
-The scripts set `use_hsl = LIBHSL_isfunctional()`. This function of HSL.jl returns `true` only
-when the licensed `HSL_jll` is installed, so nothing needs to be changed in the scripts.
-
-**With a licence.** MA57 needs a licensed `HSL_jll.jl`, available free of charge for academic
-use from [STFC](https://licences.stfc.ac.uk/product/libhsl). Download and unpack it, then add it
-to the environment with `Pkg.develop(path = "/path/to/HSL_jll.jl")` (step 4 of the
-[first-time setup](#first-time-setup)). `LIBHSL_isfunctional()` then returns `true` and the
-scripts run the MA57 solvers.
-
-**Without a licence.** Skip `Pkg.develop`: `Pkg.instantiate()` then installs the public stub of
-`HSL_jll`, so `using HSL` still works but MA57 cannot run. `LIBHSL_isfunctional()` returns
-`false`, and the scripts leave out:
+Without an HSL licence, the scripts leave out:
 
 | Script | Solvers not run | Figures not produced |
 |---|---|---|
 | `R2N_paper_benchmark.jl` | `R2N_ma57`, `R2N_ma57_fast` | `ma57`, `exact_vs_krylov` |
 | `R2N_quick_benchmark.jl` | `R2N_ma57_fast` | `exact_vs_krylov` |
-
-All the other solvers, tables and figures are the same as with the licence. To leave out the
-MA57 solvers even with a licence, set `use_hsl = false` at the top of the script.
-
-**How the scripts load HSL.** [HSL.jl](https://github.com/JuliaSmoothOptimizers/HSL.jl) is a
-direct dependency of the experiments: it is listed in `Project.toml`, because JSOSolvers no
-longer installs it. The MA57 subsolver of R2N, `MA57R2NSubsolver`, is defined in a package
-extension of JSOSolvers that is activated by `using HSL`, so the scripts load HSL next to
-JSOSolvers, with or without a licence:
-
-```julia
-using HSL  # activates MA57R2NSubsolver; loads with the public stub if there is no licence
-using JSOSolvers
-```
-
-`MA57R2NSubsolver` is not exported, so the scripts call it as `JSOSolvers.MA57R2NSubsolver(nlp)`.
-`HSL_jll` is precompiled, so it does not need `gfortran`.
-
-### Code written for an earlier version of the JSOSolvers fork
-
-The scripts in this repository use the current names. Code written for an earlier version of
-the fork must load HSL as above and make these changes:
-
-| Old usage | Now |
-|---|---|
-| `HSLR2NSubsolver(nlp; hsl_constructor = ma57_coord)` | `JSOSolvers.MA57R2NSubsolver(nlp)` (not exported) |
-| `get_operator`, `get_operator_norm` | `JSOSolvers.get_model_hessian`, `JSOSolvers.get_model_hessian_norm` |
-| `is_unsupported`, `finalize_subsolver!`, `reset_subsolver!`, `initialize!`, `update_subsolver!` | the same names with the `JSOSolvers.` prefix (no longer exported) |
-| `ls_min_alpha`, `ls_max_alpha` passed to `R2N` | remove them: they had no effect and were removed |
 
 ## Running
 
@@ -183,6 +86,13 @@ julia --project=. R2N_paper_benchmark.jl
 
 In the paper benchmark each solve is limited to 600 seconds, so a full run takes many hours.
 The plots use the default Plots.jl style, so they may look slightly different on another machine.
+
+## Reference results
+
+[`R2N_quick_reference/`](R2N_quick_reference/) and [`R2N_paper_reference/`](R2N_paper_reference/)
+hold the tables (`.md`, `.tex`) and figures (`.pdf`) that we obtained with `R2N_quick_benchmark.jl`
+and `R2N_paper_benchmark.jl`, so you can compare them with those in your `R2N_quick_results/` and
+`R2N_results/`. Times depend on the machine, so the `time` profiles are the most likely to differ.
 
 ## Quick benchmark
 
