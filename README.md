@@ -64,12 +64,11 @@ These steps are needed once per machine.
 
 ## HSL (optional)
 
-Without an HSL licence, the scripts leave out:
+Without an HSL licence, both scripts leave out:
 
-| Script | Solvers not run | Figures not produced |
-|---|---|---|
-| `R2N_paper_benchmark.jl` | `R2N_ma57`, `R2N_ma57_fast` | `ma57`, `exact_vs_krylov` |
-| `R2N_quick_benchmark.jl` | `R2N_ma57_fast` | `exact_vs_krylov` |
+| Solvers not run | Figures not produced |
+|---|---|
+| `R2N_ma57`, `R2N_ma57_fast` | `ma57`, `exact_vs_krylov` |
 
 ## Running
 
@@ -97,32 +96,29 @@ and `R2N_paper_benchmark.jl`, so you can compare them with those in your `R2N_qu
 
 ## Quick benchmark
 
-`R2N_quick_benchmark.jl` runs the same code as the paper benchmark, with the same tolerances,
-solver options, costs and `to_skip` list, on fewer problems and with a shorter time limit.
-It writes the same kind of tables and figures, under the paper's figure names.
+`R2N_quick_benchmark.jl` runs every solver of the paper benchmark, with the same tolerances,
+solver options, costs and `to_skip` list, and writes the same tables and figures. Only the
+problem size, the time limit and the output folder differ:
 
 | | `R2N_quick_benchmark.jl` |
 |---|---|
 | Problems | those of the [R2N experiment](#r2n-experiment) with at most 100 variables |
 | `max_time` | 60 seconds |
 | `output_dir` | `R2N_quick_results` |
-| Solvers | `R2N_Minres_qlp_ag`, `R2N_Minres_qlp_ag_fast`, `R2N_cg_ag`, `R2N_cg_ag_fast`, `trunk_cg`, and `R2N_ma57_fast` when `use_hsl = true` |
-| Figures | `cg_vs_minresqlp`, `variants` (only `R2N_Minres_qlp_ag` and `_ag_fast`), `exact_vs_krylov` (when `use_hsl = true`), `cg_vs_trunk` |
 
 The quick run uses only the small problems, so its profiles are not identical to the
 figures of the paper.
 
 ## Settings
 
-Each script sets only `max_var`, `max_time`, `output_dir` and, for the quick benchmark,
-`solver_names`. The other settings are shared and sit at the top of
+Each script sets only `max_var`, `max_time` and `output_dir`. The other settings are shared
+and sit at the top of
 [`benchmark_common.jl`](benchmark_common.jl). All are set to the values used in the paper,
 except where the quick benchmark differs.
 
 | Setting | Meaning | Value |
 |---|---|---|
 | `min_var`, `max_var` | range of the number of variables | 1, `Inf` (quick: 1, 100) |
-| `solver_names` | solvers run; figures left with fewer than two of their solvers are skipped | all (quick: the 6 of [Quick benchmark](#quick-benchmark)) |
 | `to_skip` | problems left out | 7 problems |
 | `atol`, `rtol` | absolute and relative stopping tolerances | 1e-6, 1e-6 |
 | `max_time` | time limit per solve, in seconds | 600 (quick: 60) |
