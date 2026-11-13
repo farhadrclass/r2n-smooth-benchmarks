@@ -14,7 +14,8 @@ many hours (see [Quick benchmark](#quick-benchmark)).
 An HSL licence is optional: without it, every solver runs except the two that use MA57
 (see [HSL (optional)](#hsl-optional)).
 
-Each script follows SolverBenchmark's
+Both scripts include [`benchmark_common.jl`](benchmark_common.jl), which holds the code they
+share and follows SolverBenchmark's
 [`bmark_cutest.jl`](https://github.com/JuliaSmoothOptimizers/SolverBenchmark.jl/blob/main/examples/bmark_cutest.jl)
 example:
 
@@ -113,12 +114,15 @@ figures of the paper.
 
 ## Settings
 
-The top of each script holds the settings. Those of the paper benchmark are set to the values
-used in the paper; the quick benchmark differs only in `max_var`, `max_time` and `output_dir`.
+Each script sets only `max_var`, `max_time`, `output_dir` and, for the quick benchmark,
+`solver_names`. The other settings are shared and sit at the top of
+[`benchmark_common.jl`](benchmark_common.jl). All are set to the values used in the paper,
+except where the quick benchmark differs.
 
 | Setting | Meaning | Value |
 |---|---|---|
 | `min_var`, `max_var` | range of the number of variables | 1, `Inf` (quick: 1, 100) |
+| `solver_names` | solvers run; figures left with fewer than two of their solvers are skipped | all (quick: the 6 of [Quick benchmark](#quick-benchmark)) |
 | `to_skip` | problems left out | 7 problems |
 | `atol`, `rtol` | absolute and relative stopping tolerances | 1e-6, 1e-6 |
 | `max_time` | time limit per solve, in seconds | 600 (quick: 60) |
@@ -130,12 +134,12 @@ used in the paper; the quick benchmark differs only in `max_var`, `max_time` and
 ## R2N experiment
 
 **Problems.** CUTEst problems with no constraints, free variables and an objective classified
-as `other` (general nonlinear), without the 7 problems listed in `to_skip` in the script
+as `other` (general nonlinear), without the 7 problems listed in `to_skip` in `benchmark_common.jl`
 (5 time out, 2 are too dense).
 
 **Stopping.** `atol = rtol = 1e-6`, `max_time = 600` seconds.
 
-**Solvers.** Each name in the script, which is also the legend label in the plots, encodes its options:
+**Solvers.** Each name in `benchmark_common.jl`, which is also the legend label in the plots, encodes its options:
 
 | Part of the name | Meaning |
 |---|---|
