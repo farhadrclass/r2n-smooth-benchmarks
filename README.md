@@ -61,8 +61,12 @@ These steps are needed once per machine; [Installation](#installation) explains 
 
 Julia 1.11 or later is required; the experiments in the paper were run with Julia 1.13.
 
-[`Project.toml`](Project.toml) lists the packages and their versions, and
-[`Manifest.toml`](Manifest.toml) records the exact versions used.
+[`Project.toml`](Project.toml) pins each package to an exact version (`=` in `[compat]`), and
+[`Manifest.toml`](Manifest.toml) records the exact version of every package, including their
+dependencies. `Pkg.instantiate()` installs exactly these versions, so everyone runs the same
+code. Do not run `Pkg.update()`: the pins keep the packages of `Project.toml` fixed, but it
+would still upgrade their dependencies. `HSL_jll` is the only package that is not pinned, because
+with a licence it is replaced by the licensed `HSL_jll.jl` (see [HSL (optional)](#hsl-optional)).
 
 ### CUTEst.jl and gfortran
 
@@ -108,8 +112,8 @@ finalize(nlp)
 ### JSOSolvers
 
 R2N is part of [JSOSolvers.jl](https://github.com/JuliaSmoothOptimizers/JSOSolvers.jl) from
-version 0.14.9 on. `Project.toml` requires at least that version, so `Pkg.instantiate()`
-installs it from the General registry like the other packages.
+version 0.14.9 on. `Project.toml` pins that version, so `Pkg.instantiate()` installs it from
+the General registry like the other packages.
 
 ### HSL (optional)
 
