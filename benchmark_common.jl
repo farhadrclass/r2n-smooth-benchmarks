@@ -76,17 +76,27 @@ figures = [
   "trunk_vs_lbfgs_cg" => [:R2N_LBFGS_cg_fast_variant, :Trunk_LBFGS_cg],
 ]
 
-# columns and headers of the tables
+# columns and headers of the tables; the LaTeX headers use ASCII math so the tables compile
 cols = [:id, :name, :nvar, :objective, :dual_feas, :neval_obj, :neval_grad, :neval_hess, :neval_hprod, :iter, :elapsed_time, :status]
-headers = Dict(
+md_headers = Dict(
   :nvar => "n",
   :objective => "f(x)",
   :dual_feas => "‖∇f(x)‖",
-  :neval_obj => "# f",
-  :neval_grad => "# ∇f",
-  :neval_hess => "# ∇²f",
-  :neval_hprod => "# ∇²f·v",
+  :neval_obj => "f",
+  :neval_grad => "∇f",
+  :neval_hess => "∇²f",
+  :neval_hprod => "∇²f·v",
   :elapsed_time => "t",
+)
+tex_headers = Dict(
+  :nvar => raw"\(n\)",
+  :objective => raw"\(f(x)\)",
+  :dual_feas => raw"\(\|\nabla f(x)\|\)",
+  :neval_obj => raw"\(f\)",
+  :neval_grad => raw"\(\nabla f\)",
+  :neval_hess => raw"\(\nabla^2 f\)",
+  :neval_hprod => raw"\(\nabla^2 f \cdot v\)",
+  :elapsed_time => raw"\(t\)",
 )
 
 """
@@ -114,10 +124,10 @@ function run_benchmark(; problem_names, max_time, output_dir, solver_names = not
   # write one table per solver, as Markdown and LaTeX
   for (solver, df) in stats
     open(joinpath(output_dir, "R2N_$(solver).md"), "w") do io
-      pretty_stats(io, df[!, cols], hdr_override = headers, tf = tf_markdown)
+      pretty_stats(io, df[!, cols], hdr_override = md_headers, tf = tf_markdown)
     end
     open(joinpath(output_dir, "R2N_$(solver).tex"), "w") do io
-      pretty_latex_stats(io, df[!, cols], hdr_override = headers)
+      pretty_latex_stats(io, df[!, cols], hdr_override = tex_headers)
     end
   end
 
