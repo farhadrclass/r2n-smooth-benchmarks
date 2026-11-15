@@ -82,20 +82,20 @@ md_headers = Dict(
   :nvar => "n",
   :objective => "f(x)",
   :dual_feas => "‖∇f(x)‖",
-  :neval_obj => "f",
-  :neval_grad => "∇f",
-  :neval_hess => "∇²f",
-  :neval_hprod => "∇²f·v",
+  :neval_obj => "neval_obj",
+  :neval_grad => "neval_grad",
+  :neval_hess => "neval_hess",
+  :neval_hprod => "neval_hprod",
   :elapsed_time => "t",
 )
 tex_headers = Dict(
   :nvar => raw"\(n\)",
   :objective => raw"\(f(x)\)",
   :dual_feas => raw"\(\|\nabla f(x)\|\)",
-  :neval_obj => raw"\(f\)",
-  :neval_grad => raw"\(\nabla f\)",
-  :neval_hess => raw"\(\nabla^2 f\)",
-  :neval_hprod => raw"\(\nabla^2 f \cdot v\)",
+  :neval_obj => raw"neval\_obj",
+  :neval_grad => raw"neval\_grad",
+  :neval_hess => raw"neval\_hess",
+  :neval_hprod => raw"neval\_hprod",
   :elapsed_time => raw"\(t\)",
 )
 
