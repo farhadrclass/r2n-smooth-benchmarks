@@ -1,4 +1,4 @@
-|     id |       name |      n |      f(x) |   ‖∇f(x)‖ |    # f |   # ∇f |  # ∇²f | # ∇²f·v |   iter |         t |      status |
+|     id |       name |      n |      f(x) |   ‖∇f(x)‖ | neval_obj | neval_grad | neval_hess | neval_hprod |   iter |         t |      status |
 |--------|------------|--------|-----------|-----------|--------|--------|--------|---------|--------|-----------|-------------|
 |      1 |      AKIVA |      2 |  6.17e+00 |  5.89e-07 |      7 |      7 |      7 |       0 |      6 |  1.60e-04 | first_order |
 |      2 |   ALLINITU |      4 |  5.74e+00 |  5.42e-10 |     11 |     10 |     10 |       0 |     18 |  1.05e-04 | first_order |
